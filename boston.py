@@ -65,17 +65,16 @@ def display_progress(n_iter, i_iter, model, inputs, actuals):
 
 # Progress Callback to show a graph to display the current training progress
 # every given n_step iterations
-i_plot = 1
+i_plot = 0
 def plot_progress(n_iter, i_iter, model, inputs, actuals, n_step=125):
     global i_plot
     if i_iter % n_step == 0:
-        plt.subplot(2, 4, i_plot)
         i_plot = i_plot % (n_iter // n_step) + 1
-        print(i_plot)
+        plt.subplot(2, 4, i_plot)
 
         # Plot the current model with the data to visualise performance
         predicts = predict(model, inputs)
-        plt.title("Training Model - {}/{}".format(i_iter, n_iter))
+        plt.title("{}. Training Model - {}/{}".format(i_plot, i_iter, n_iter))
         plt.xlabel("No. of rooms")
         plt.ylabel("Housing Price in thousands")
         plt.plot(inputs, actuals, "r+", label="Data")
