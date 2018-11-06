@@ -8,7 +8,8 @@
 import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt
-import time
+import random
+import math
 
 ## Utilities
 # Append a column of ones to the inputs
@@ -55,6 +56,49 @@ def polynomialize_data(inputs, n_degrees):
     
     return input_matrix
 
+# Shuffle datasets inputs and outputs.
+# Inputs and outputs would be shuffled in the same order, so any ordering relation 
+# between coresponding inputs and outputs will be preserved.
+# input and output length must be the same.
+# Returns the shuffled inputs and outputs
+def shuffle(inputs, outputs):
+    if not len(inputs) == len(outputs): 
+        raise ValueError("Input and outs length are different")
+
+    n_data = len(inputs)
+
+    # Conduct shuffle on copy
+    shuffle_ins = inputs[:]
+    shuffle_outs = outputs[:]
+
+    # Fisher-Yates shuffle
+    for i in range(n_data - 1): # 1 to n - 2
+        j = random.randint(i, n_data - 1) # random j that satisfies i <= j <= (n - 1)
+        # Swap jth element with ith element to place jth element in randomized
+        # subsection of array
+        shuffle_ins[i], shuffle_ins[j] = shuffle_ins[j], shuffle_ins[i] 
+        shuffle_outs[i], shuffle_outs[j] = shuffle_outs[j], shuffle_outs[i] 
+    
+    return shuffle_ins, shuffle_outs
+
+# Test Train Spliter
+# Splits input and output data into test and train data in ratio 7:3
+# input and output length must be the same.
+# Returns (train_ins, train_outs, test_ins, tests_outs)
+def split_test_train(inputs, outputs, ratio=0.7):
+    if not len(inputs) == len(outputs): 
+        raise ValueError("Input and outs length are different")
+    
+    border = math.floor(ratio * len(inputs))
+    # Demarking a 80% slice of data for training
+    train_ins = inputs[:border] # slice from start to (border - 1)
+    train_outs = outputs[:border] # slice from start to (border - 1)
+    
+    test_ins = inputs[border:] # slice from border to end
+    test_outs = outputs[border:] # slice from border to end
+
+    return (train_ins, train_outs, test_ins, test_outs)
+
 ## Training
 # Progress Callback to pretty dipslay the current training progress to stdout
 def display_progress(n_iter, i_iter, model, inputs, actuals):
@@ -74,17 +118,15 @@ def plot_progress(n_iter, i_iter, model, inputs, actuals, n_step=125):
 
         # Plot the current model with the data to visualise performance
         predicts = predict(model, inputs)
-        plt.title("{}. Training Model - {}/{}".format(i_plot, i_iter, n_iter))
+        cost = compute_cost(predicts, actuals)
+        plt.title("{}. Model {}/{} - Cost: {:.2e}".format(i_plot, i_iter, n_iter,
+                                                          cost))
+        plt.suptitle("Training Progress")
         plt.xlabel("No. of rooms")
-        plt.ylabel("Housing Price in thousands")
+        plt.ylabel("Housing Price")
         plt.plot(inputs, actuals, "r+", label="Data")
         plt.plot(inputs, predicts, "g-", label="Model")
         plt.legend()
-        
-        # Display current cost for model
-        predicts = predict(model, inputs)
-        cost = compute_cost(predicts, actuals)
-        plt.suptitle("Cost: {:.2f}".format(cost)) 
         
 
 # Train a multiple linear regression model on the given data as inputs and 
@@ -93,8 +135,8 @@ def plot_progress(n_iter, i_iter, model, inputs, actuals, n_step=125):
 # If provided will call the given progress callback every iteration of training 
 # provides the callback no. of iteration, current iteration and current model
 # and the data as inputs and ouptus
-def train(inputs, actuals, learning_rate=0.3, momentum_rate=0.95, 
-          n_iter=10000, callback=None):
+def train(inputs, actuals, learning_rate=0.3, momentum_rate=0.98, 
+          n_iter=10 ** 3, n_degree, callback=None):
     # Train model with parameter for every feature in input
     n_feature = inputs.shape[1] if len(inputs.shape) > 1 else 1
     model = [ 0.0 ] * (n_feature + 1)
@@ -138,7 +180,7 @@ if __name__ == "__main__":
     prices = housing_df.loc[:, "MEDV"].values
     plt.title("Price of House as No. Rooms increases")
     plt.xlabel("No. of rooms")
-    plt.ylabel("Housing Price in thousands")
+    plt.ylabel("Housing Price")
     plt.plot(rooms, prices, "rx") 
 
     #plt.show()
@@ -153,18 +195,62 @@ if __name__ == "__main__":
     bad_cost = compute_cost(bad_predicts, prices)
     print("bad cost:", bad_cost)
 
-    # Training the model
-    model = train(rooms, prices, learning_rate=0.3, momentum_rate=0.98, 
-                  n_iter=10 ** 3, callback=plot_progress)
-    
-    plt.show()
+    # Training the model on all the  data
+    model = train(rooms, prices, callback=plot_progress)
+    #plt.show()
+
     # Visualise trained model
     predicts = predict(model, rooms)
     plt.title("LR model of Housing Price vs No. Rooms")
     plt.xlabel("No. of rooms")
-    plt.ylabel("Housing Price in thousands")
+    plt.ylabel("Housing Price")
     plt.plot(rooms, prices, "rx", label="Data")
     plt.plot(rooms, predicts, "g-", label="Model")
     plt.legend()
+    #plt.show()
+    
+    # What happens if you forget to shuffle you data
+    train_rooms, train_prices, test_rooms, test_prices = split_test_train(rooms, 
+                                                                          prices, 
+                                                                          0.7)
+    model = train(train_rooms, train_prices, callback=display_progress)
+    
+    plt.clf()
+    predicts = predict(model, rooms)
+    plt.plot(train_rooms, train_prices, "rx", label="Training data")
+    plt.plot(test_rooms, test_prices, "yx", label="Test data")
+    plt.plot(rooms, predicts, "g-", label="Model")
+    plt.title("That moment when you forgot to shuffle...")
+    plt.xlabel("No. of rooms")
+    plt.ylabel("Housing Price")
+    plt.legend()
     plt.show()
 
+    # Split the data into test and train subsets for later cross validation
+    rooms, prices = shuffle(rooms, prices)
+    train_rooms, train_prices, test_rooms, test_prices = split_test_train(rooms, 
+                                                                          prices, 
+                                                                          0.7)
+
+    # Train model on training set
+    model = train(train_rooms, train_prices, callback=display_progress)
+    
+    # Cross validate model using training set
+    n_test = len(test_prices)
+    predicts = predict(model, test_rooms)
+    diffs = abs(predicts - test_prices)
+    mean_diff = sum(diffs) / n_test
+    print("On average, the model is off by +- ${:.2f}".format(mean_diff))
+
+    # Diagnose that we are underfitting the model
+    plt.clf()
+    predicts = predict(model, rooms)
+    plt.title("LR model of Housing Price vs No. Rooms")
+    plt.xlabel("No. of rooms")
+    plt.ylabel("Housing Price")
+    plt.plot(rooms, prices, "rx", label="Data")
+    plt.plot(rooms, predicts, "g-", label="Model")
+    plt.legend()
+    #plt.show()
+
+    # Add flexibility to the model
