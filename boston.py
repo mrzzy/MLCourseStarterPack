@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import math
+from sklearn.svm import SVR
 
 ## Utilities
 # Append a column of ones to the inputs
@@ -81,6 +82,20 @@ def shuffle(inputs, outputs):
     
     return shuffle_ins, shuffle_outs
 
+# Reorder the given data columns by the specifed column by_col
+# Returns the sorteed data columns
+def reorder(data_cols, by_col=0):
+    n_col =  len(data_cols)
+    # Combine and sort data columns
+    dataset = zip(*data_cols)
+    dataset = sorted(dataset, key=(lambda e: e[by_col]))
+    
+    # Extract out columns and revert to numpy arrays
+    data_cols = zip(*dataset)
+    data_cols = [ np.asarray(c) for c in data_cols ]
+    
+    return data_cols
+
 # Test Train Spliter
 # Splits input and output data into test and train data in ratio 7:3
 # input and output length must be the same.
@@ -136,7 +151,7 @@ def plot_progress(n_iter, i_iter, model, inputs, actuals, n_step=125):
 # provides the callback no. of iteration, current iteration and current model
 # and the data as inputs and ouptus
 def train(inputs, actuals, learning_rate=0.3, momentum_rate=0.98, 
-          n_iter=10 ** 3, n_degree, callback=None):
+          n_iter=10 ** 3, callback=None):
     # Train model with parameter for every feature in input
     n_feature = inputs.shape[1] if len(inputs.shape) > 1 else 1
     model = [ 0.0 ] * (n_feature + 1)
@@ -224,7 +239,7 @@ if __name__ == "__main__":
     plt.xlabel("No. of rooms")
     plt.ylabel("Housing Price")
     plt.legend()
-    plt.show()
+    #plt.show()
 
     # Split the data into test and train subsets for later cross validation
     rooms, prices = shuffle(rooms, prices)
@@ -235,7 +250,7 @@ if __name__ == "__main__":
     # Train model on training set
     model = train(train_rooms, train_prices, callback=display_progress)
     
-    # Cross validate model using training set
+    # Cross validate model using test set
     n_test = len(test_prices)
     predicts = predict(model, test_rooms)
     diffs = abs(predicts - test_prices)
@@ -245,6 +260,8 @@ if __name__ == "__main__":
     # Diagnose that we are underfitting the model
     plt.clf()
     predicts = predict(model, rooms)
+    # reorder is required because we shuffled the data
+    rooms, predicts, prices = reorder((rooms, predicts, prices), by_col=0)
     plt.title("LR model of Housing Price vs No. Rooms")
     plt.xlabel("No. of rooms")
     plt.ylabel("Housing Price")
@@ -253,4 +270,56 @@ if __name__ == "__main__":
     plt.legend()
     #plt.show()
 
-    # Add flexibility to the model
+    # Retrain wit SVM Regression with more flexibility
+    # Purposely train with big gamma to show overfitting.
+    model = SVR(C=1e+6, gamma=3e+3)
+    model.fit(train_rooms.reshape(-1, 1), train_prices)
+    
+    # Cross validate SVR model on test set 
+    n_test = len(test_prices)
+    predicts = model.predict(test_rooms.reshape(-1, 1))
+    diffs = abs(predicts - test_prices)
+    mean_diff = sum(diffs) / n_test
+    print("On average, the model is off by +- ${:.2f}".format(mean_diff))
+
+    # Visualise the new model
+    plt.clf()
+    predicts = model.predict(rooms.reshape(-1, 1))
+    
+    # reorder is required because we shuffled the data
+    test_rooms, test_prices = reorder((test_rooms, test_prices), by_col=0)
+    train_rooms, train_prices = reorder((train_rooms, train_prices), by_col=0)
+    rooms, predicts = reorder((rooms, predicts), by_col=0)
+    
+    plt.title("SVM model of Housing Price vs No. Rooms")
+    plt.xlabel("No. of rooms")
+    plt.ylabel("Housing Price")
+    plt.plot(test_rooms, test_prices, "yx", label="Test Data")
+    plt.plot(train_rooms, train_prices, "rx", label="Training Data")
+    plt.plot(rooms, predicts, "g-", label="Model")
+    plt.legend()
+    #plt.show()
+    
+    # Retrain model that doesn't overfit and underfit
+    model = SVR(C=1e+6, gamma=1e-1)
+    model.fit(train_rooms.reshape(-1, 1), train_prices)
+
+    # Cross validate SVR model on test set 
+    n_test = len(test_prices)
+    predicts = model.predict(test_rooms.reshape(-1, 1))
+    diffs = abs(predicts - test_prices)
+    mean_diff = sum(diffs) / n_test
+    print("On average, the model is off by +- ${:.2f}".format(mean_diff))
+    
+    # Visualise the new model
+    plt.clf()
+    predicts = model.predict(rooms.reshape(-1, 1))
+    
+    rooms, predicts, prices = reorder((rooms, predicts, prices), by_col=0)
+    plt.title("SVM model of Housing Price vs No. Rooms")
+    plt.xlabel("No. of rooms")
+    plt.ylabel("Housing Price")
+    plt.plot(rooms, prices, "rx", label="Data")
+    plt.plot(rooms, predicts, "g-", label="Model")
+    plt.legend()
+    #plt.show()
