@@ -6,7 +6,7 @@ Starter pack for the course: [GitHub - mrzzy/MLCourseStarterPack: Starter Pack f
 ### Pre-Course 
 Complete before starting demos in lessons:
 1. Install miniconda: [Miniconda — Conda](https://conda.io/miniconda.html)
-2. Run `conda create -cn ml python=3.6`
+2. Run `conda create -n ml python=3.6`
 3. Run `conda activate ml`
 4. Clone or download the [course starter pack](https://github.com/mrzzy/MLCourseStarterPack.git)
 5. Install required packages using `pip install -r requirements.txt`
