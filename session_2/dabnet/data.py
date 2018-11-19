@@ -18,7 +18,7 @@ from cv import capture_frame, crop_center
 def count_dataset():
     img_paths = list(filter((lambda p: re.match(r"(not)?dab_[0-9]+.jpg", p) != None),
                        os.listdir()))
-    n_notdab = sum([ 1 for path in img_paths if "notdab"])
+    n_notdab = sum([ 1 for path in img_paths if "notdab" in path ])
     n_dab = len(img_paths) - n_notdab
 
     return n_dab, n_notdab
