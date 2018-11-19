@@ -2,49 +2,56 @@
 # data.py
 # Dataset Collector for Dabnet
 # 
+
 import cv2
 import os
+import re
 import numpy as np
-from shutil import rmtree
+from PIL import Image
 
-# OpenCV utilities
-# Captures and Returns a grayscale frame from the camera
-# Rescales the frame for the given scale
-# Return frame is represented as a numpy array
-capture = cv2.VideoCapture(0)
-def capture_frame(scale=0.5):
-    # Capture frame from camera 
-    ret, frame = capture.read()
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+from cv import capture_frame, crop_center
 
-    # Rescale the frame
-    cv2.resize(frame, (0,0), fx=scale, fy=scale) 
+## Dataset Manipulation
+# Count the number of entries for each label in tne dataset
+# Returns n_dab, n_notdab counts for the number of dab entries, number of non dab 
+# entries
+def count_dataset():
+    img_paths = list(filter((lambda p: re.match(r"(not)?dab_[0-9]+.jpg", p) != None),
+                       os.listdir()))
+    n_notdab = sum([ 1 for path in img_paths if "notdab"])
+    n_dab = len(img_paths) - n_notdab
 
-    return frame
+    return n_dab, n_notdab
 
-# Crop the given image repesented as a np array to a square frame of x by x
-# where x is the length of the shorter side of the image
-def crop_center(image):
-    # Compute new dimentions for image
-    # Crop a centered square from the image
-    target_dim = min(image.shape)
-    len_y, len_x = image.shape
+# Load dab image data from the given data path
+# Represents images as numpy arrays and labels as 1 - dab, 0 - no dab
+# Returns a list of images and labels
+def load_data(path="data"):
+    cwd = os.getcwd()
+    os.chdir(path)
+    img_paths = filter((lambda p: re.match(r"(not)?dab_[0-9]+.jpg", p) != None),
+                       os.listdir())
 
-    begin_y = (len_y // 2) - (target_dim // 2)
-    end_y  = (len_y // 2) + (target_dim // 2)
-    
-    begin_x = (len_x // 2) - (target_dim // 2)
-    end_x  = (len_x // 2) + (target_dim // 2)
-    
-    # Perform crop for computed dimentions
-    image = image[begin_y:end_y, begin_x: end_x]
-    return image
+    # Collate data into image and label lists
+    imgs = []
+    labels = []
+    for img_path in img_paths:
+        # Load and collect image
+        img = Image.open(img_path)
+        imgs.append(img)
+
+        # Detemine and collect label
+        if "notdab" in img_path:
+            labels.append(0)
+        elif "dab" in img_path:
+            labels.append(1)
+
+    os.chdir(cwd)
+    return imgs, labels
 
 
 if __name__ == "__main__":
-    # Setup data directory
-    if os.path.exists("data"): rmtree("data")
-    os.mkdir("data")
+    if not os.path.exists("data"): os.mkdir("data")
     os.chdir("data")
     
     # Interactive dataset collector
@@ -52,7 +59,7 @@ if __name__ == "__main__":
     print("press d to record a dab, n to record not a dab.")
     print("q to quit")
     
-    n_dab, n_notdab = 0, 0
+    n_dab, n_notdab = count_dataset()
     while True:
         frame = capture_frame()
         frame = crop_center(frame)
@@ -60,7 +67,6 @@ if __name__ == "__main__":
     
         key = chr(cv2.waitKey(1) & 0xFF)
         if key == "q":
-            capture.release()
             break # Quit program
         elif key == "d":
             n_dab += 1
