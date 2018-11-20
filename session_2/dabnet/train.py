@@ -48,11 +48,12 @@ if __name__ == "__main__":
     print(labels)
 
     # Train model
-    tensorboard = TensorBoard(log_dir="logs/{}".format(datetime.now()))
+    log_path = os.path.join("logs", "{}".format(datetime.now()))
+    tensorboard = TensorBoard(log_dir=log_path)
     print("Training model...")
     model = model.build()
     model.fit(images, labels, 
-              batch_size=64,
+              batch_size=12,
               epochs=1,
               validation_split=0.2,
               shuffle=True,
