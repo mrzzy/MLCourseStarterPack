@@ -11,7 +11,6 @@ from datetime import datetime
 from PIL import Image
 from multiprocessing.pool import ThreadPool as Pool
 from multiprocessing import cpu_count
-from keras.callbacks import TensorBoard
 
 import model
 from data import load_data
@@ -48,16 +47,13 @@ if __name__ == "__main__":
     print(labels)
 
     # Train model
-    log_path = os.path.join("logs", "{}".format(datetime.now()))
-    tensorboard = TensorBoard(log_dir=log_path)
     print("Training model...")
     model = model.build()
     model.fit(images, labels, 
               batch_size=12,
               epochs=1,
               validation_split=0.2,
-              shuffle=True,
-              callbacks=[tensorboard])
+              shuffle=True)
 
     model.save("dabnet.hd5")
     print("Saved trained model at dabnet.hd5")
