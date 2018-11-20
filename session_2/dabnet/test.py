@@ -9,7 +9,7 @@ import numpy as np
 from keras import models
 from PIL import Image
 
-from cv import capture_frame, crop_center
+from cv2 import capture_frame, crop_center
 from train import preprocess_image
 
 if __name__ == "__main__":
