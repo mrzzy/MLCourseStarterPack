@@ -33,7 +33,7 @@ if __name__ == "__main__":
         prediction = "Dab" if probability > 0.6 else "No Dab"
         
         # Show Results of classfication
-        cv2.putText(frame, prediction,(8, 700), cv2.FONT_HERSHEY_SIMPLEX, 
+        cv2.putText(frame, prediction,(8, 8), cv2.FONT_HERSHEY_SIMPLEX, 
                     2,(255, 255, 255), 2 ,cv2.LINE_AA)
         cv2.imshow("Detecting...", frame)
         key = chr(cv2.waitKey(1) & 0xFF)
