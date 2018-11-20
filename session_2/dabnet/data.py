@@ -9,7 +9,7 @@ import re
 import numpy as np
 from PIL import Image
 
-from cv2 import capture_frame, crop_center
+from cv import capture_frame, crop_center
 
 ## Dataset Manipulation
 # Count the number of entries for each label in tne dataset
