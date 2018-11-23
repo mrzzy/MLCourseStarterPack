@@ -27,11 +27,9 @@ if __name__ == "__main__":
         # Classify frame contains dab or not
         image = Image.fromarray(frame.astype("uint8"))
         image = preprocess_image(image)
-        images = np.expand_dims(image, 0) # Add batch dimention
         
-        probability =  model.predict(images)[0][0]
-        prediction = "Dab" if probability > 0.6 else "No Dab"
-        
+        # TODO: Make predictions using model
+       
         # Show Results of classfication
         cv2.putText(frame, prediction,(8, 60), cv2.FONT_HERSHEY_SIMPLEX, 
                     2,(255, 255, 255), 2 ,cv2.LINE_AA)

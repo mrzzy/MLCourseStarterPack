@@ -49,11 +49,7 @@ if __name__ == "__main__":
     # Train model
     print("Training model...")
     model = model.build()
-    model.fit(images, labels, 
-              batch_size=12,
-              epochs=1,
-              validation_split=0.2,
-              shuffle=True)
+    # TODO: Train the model
 
     model.save("dabnet.hd5")
     print("Saved trained model at dabnet.hd5")
